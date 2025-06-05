@@ -1,0 +1,2653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reykjavík Beer Tracker</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    
+    <style>
+        /* ========================================
+           BASE STYLES & RESET
+        ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            color: #333;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* ========================================
+           NAVIGATION STYLES
+        ======================================== */
+        .nav-bar {
+            background: #1a1a1a;
+            padding: 1rem 0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+        
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #f39c12;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-button {
+            background: none;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            color: #fff;
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .nav-button:hover {
+            background: rgba(243, 156, 18, 0.2);
+        }
+        
+        .nav-button.active {
+            background: #f39c12;
+            color: #1a1a1a;
+        }
+        
+        /* Mobile Navigation */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+            z-index: 999;
+        }
+        
+        .mobile-nav.show {
+            display: block;
+        }
+        
+        .mobile-nav-links {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+        }
+        
+        .mobile-nav-button {
+            background: none;
+            border: none;
+            padding: 1rem;
+            color: white;
+            font-size: 1rem;
+            text-align: left;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+            min-height: 44px;
+        }
+        
+        .mobile-nav-button:hover,
+        .mobile-nav-button.active {
+            background: #f39c12;
+            color: #1a1a1a;
+        }
+        
+        /* ========================================
+           LAYOUT & SECTIONS
+        ======================================== */
+        .main-content {
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+        }
+        
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .section-header h2 {
+            font-size: 2.5rem;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-header p {
+            color: #666;
+            font-size: 1.125rem;
+        }
+        
+        /* ========================================
+           HOME SECTION STYLES
+        ======================================== */
+        .home-section {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
+            min-height: calc(100vh - 60px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .home-content {
+            text-align: center;
+            color: white;
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        .home-header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .home-header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 2.5rem 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .feature-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .feature-card p {
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        /* ========================================
+           MAP SECTION STYLES
+        ======================================== */
+        .map-container {
+            position: relative;
+            height: calc(100vh - 60px);
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            min-width: 280px;
+            max-width: 320px;
+            color: white;
+        }
+        
+        .controls-header {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #f39c12;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #444;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            background: #2c2c2c;
+            color: white;
+            transition: border-color 0.3s;
+            min-height: 44px;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #f39c12;
+        }
+        
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-title {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #ccc;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-button {
+            display: block;
+            width: 100%;
+            margin: 0.5rem 0;
+            padding: 0.75rem 1rem;
+            background: #2c2c2c;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            text-align: left;
+            min-height: 44px;
+        }
+        
+        .filter-button:hover {
+            background: #3c3c3c;
+            border-color: #f39c12;
+        }
+        
+        .filter-button.active {
+            background: #f39c12;
+            color: #1a1a1a;
+            border-color: #f39c12;
+        }
+        
+        .reset-button {
+            background: #e74c3c;
+            text-align: center;
+            margin-top: 1rem;
+            border-color: #e74c3c;
+        }
+        
+        .reset-button:hover {
+            background: #c0392b;
+            border-color: #c0392b;
+        }
+        
+        /* ========================================
+           RATING SECTION STYLES
+        ======================================== */
+        .rating-section {
+            background: #f5f5f5;
+            padding: 2rem;
+            min-height: calc(100vh - 60px);
+        }
+        
+        .rating-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            min-height: 44px;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #f39c12;
+        }
+        
+        .star-rating {
+            display: flex;
+            gap: 0.25rem;
+            font-size: 2.5rem;
+            align-items: center;
+        }
+        
+        .star {
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: color 0.2s;
+            user-select: none;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .star:hover {
+            color: #f39c12;
+        }
+        
+        .star.full {
+            color: #f39c12;
+        }
+        
+        .star.half {
+            background: linear-gradient(90deg, #f39c12 50%, #e0e0e0 50%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .rating-display {
+            margin-left: 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f39c12;
+        }
+        
+        .submit-button {
+            width: 100%;
+            padding: 1rem;
+            background: #f39c12;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            min-height: 44px;
+        }
+        
+        .submit-button:hover {
+            background: #e67e22;
+        }
+        
+        /* ========================================
+           SCOREBOARD SECTION STYLES
+        ======================================== */
+        .scoreboard-section {
+            background: #f5f5f5;
+            padding: 2rem;
+            min-height: calc(100vh - 60px);
+        }
+        
+        .scoreboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .podium-container {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .podium-title {
+            text-align: center;
+            color: #f39c12;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            height: 300px;
+        }
+        
+        .podium-place {
+            flex: 1;
+            max-width: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .podium-beer {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            width: 100%;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .podium-beer:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .podium-beer-name {
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .podium-beer-venue {
+            font-size: 0.875rem;
+            color: #ccc;
+            margin-bottom: 0.5rem;
+        }
+        
+        .podium-beer-rating {
+            color: #f39c12;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        
+        .podium-beer-count {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 0.25rem;
+        }
+        
+        .place-1 .podium-block { height: 150px; background: linear-gradient(135deg, #FFD700, #FFA500); }
+        .place-2 .podium-block { height: 120px; background: linear-gradient(135deg, #C0C0C0, #808080); }
+        .place-3 .podium-block { height: 90px; background: linear-gradient(135deg, #CD7F32, #8B4513); }
+        
+        .scoreboard-filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .filter-chip {
+            padding: 0.5rem 1.5rem;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 44px;
+        }
+        
+        .filter-chip.active {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .beer-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        
+        .beer-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .beer-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        
+        .beer-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        
+        .beer-venue {
+            color: #666;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        .beer-rating {
+            color: #f39c12;
+            font-size: 1.125rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .beer-details {
+            display: flex;
+            gap: 2rem;
+            color: #666;
+            font-size: 0.875rem;
+            flex-wrap: wrap;
+        }
+        
+        .click-hint {
+            color: #f39c12;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        
+        /* ========================================
+           MODAL STYLES
+        ======================================== */
+        .rating-history-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 1rem;
+        }
+        
+        .rating-history-modal.show {
+            display: flex;
+        }
+        
+        .rating-history-content {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .rating-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 1rem;
+        }
+        
+        .rating-history-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0.5rem;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 50%;
+        }
+        
+        .close-modal:hover {
+            background: #f0f0f0;
+        }
+        
+        .rating-history-summary {
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .average-rating {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #f39c12;
+            margin-bottom: 0.5rem;
+        }
+        
+        .rating-count {
+            color: #666;
+            font-size: 0.875rem;
+        }
+        
+        .rating-history-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .rating-history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .rating-history-venue {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        
+        .rating-history-stars {
+            color: #f39c12;
+            font-size: 1.125rem;
+        }
+        
+        .rating-history-details {
+            display: flex;
+            gap: 1rem;
+            color: #666;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .rating-history-notes {
+            background: #f5f5f5;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-style: italic;
+            color: #555;
+        }
+        
+        /* ========================================
+           STATS SECTION STYLES
+        ======================================== */
+        .stats-section {
+            background: #f5f5f5;
+            padding: 2rem;
+            min-height: calc(100vh - 60px);
+        }
+        
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f39c12;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        .achievements-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .achievements-header {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+        }
+        
+        .achievement {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        
+        .achievement.unlocked {
+            background: rgba(243, 156, 18, 0.1);
+            border: 1px solid #f39c12;
+        }
+        
+        .achievement-icon {
+            font-size: 2.5rem;
+            opacity: 0.3;
+        }
+        
+        .achievement.unlocked .achievement-icon {
+            opacity: 1;
+        }
+        
+        .achievement-info h4 {
+            margin-bottom: 0.25rem;
+            color: #333;
+        }
+        
+        .achievement-info p {
+            color: #666;
+            font-size: 0.875rem;
+        }
+        
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 10px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: #f39c12;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        /* ========================================
+           DRUNK METER STYLES
+        ======================================== */
+        .drunk-meter-section {
+            background: #f5f5f5;
+            padding: 2rem;
+            min-height: calc(100vh - 60px);
+        }
+        
+        .drunk-meter-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .meter-display {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .meter-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .drunk-level {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .drunk-level.sober { color: #3498db; }
+        .drunk-level.tipsy { color: #f39c12; }
+        .drunk-level.buzzed { color: #27ae60; }
+        .drunk-level.drunk { color: #e74c3c; }
+        .drunk-level.smashed { color: #9b59b6; }
+        .drunk-level.blackout { color: #8b0000; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .meter-bar-container {
+            background: #e0e0e0;
+            border-radius: 20px;
+            height: 40px;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+        
+        .meter-bar {
+            height: 100%;
+            transition: width 0.5s ease, background 0.5s ease;
+            border-radius: 20px;
+        }
+        
+        .meter-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .meter-stat {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .meter-stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+        
+        .meter-stat-label {
+            color: #666;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        .today-beers {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .today-beers-header {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+        }
+        
+        .today-beer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        
+        .today-beer-info {
+            flex: 1;
+        }
+        
+        .today-beer-name {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        
+        .today-beer-details {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        
+        .today-beer-time {
+            color: #999;
+            font-size: 0.875rem;
+        }
+        
+        .warning-message {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            color: #856404;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .warning-icon {
+            font-size: 2rem;
+        }
+        
+        /* ========================================
+           UTILITY STYLES
+        ======================================== */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #1a1a1a;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            z-index: 2000;
+        }
+        
+        .toast.show {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .no-ratings-message {
+            text-align: center;
+            color: #ccc;
+            font-size: 1.125rem;
+            padding: 2rem;
+        }
+        
+        /* ========================================
+           RESPONSIVE DESIGN
+        ======================================== */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .mobile-menu-btn { display: block; }
+            .nav-content { padding: 0 1rem; }
+            
+            .home-header h1 { font-size: 2.5rem; }
+            .home-header p { font-size: 1rem; }
+            .feature-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .feature-card { padding: 2rem 1.5rem; }
+            
+            .map-controls {
+                left: 0.5rem;
+                right: 0.5rem;
+                max-width: none;
+                min-width: auto;
+                padding: 1rem;
+            }
+            
+            .stats-grid { grid-template-columns: 1fr; }
+            .scoreboard-filters { padding: 1rem; }
+            .filter-chip { font-size: 0.875rem; padding: 0.5rem 1rem; }
+            
+            .beer-card { padding: 1rem; }
+            .beer-card-header { flex-direction: column; align-items: start; gap: 0.5rem; }
+            .beer-details { gap: 1rem; flex-direction: column; }
+            
+            .podium { height: 250px; gap: 0.5rem; }
+            .podium-beer { padding: 0.75rem; }
+            .podium-beer-name { font-size: 1rem; }
+            
+            .place-1 .podium-block { height: 120px; }
+            .place-2 .podium-block { height: 100px; }
+            .place-3 .podium-block { height: 80px; }
+            
+            .rating-history-content { margin: 1rem; padding: 1.5rem; max-height: 90vh; }
+            .rating-history-details { flex-direction: column; gap: 0.5rem; }
+            
+            .star-rating { font-size: 2rem; gap: 0.125rem; }
+            .toast { bottom: 1rem; right: 1rem; left: 1rem; }
+            .meter-stats { grid-template-columns: repeat(2, 1fr); }
+            .rating-container, .section-header { padding: 1.5rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .home-header h1 { font-size: 2rem; }
+            .feature-icon { font-size: 2.5rem; }
+            .stat-number { font-size: 2rem; }
+            .drunk-level { font-size: 2rem; }
+            .meter-icon { font-size: 3.5rem; }
+            .meter-stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ========================================
+         NAVIGATION BAR
+    ======================================== -->
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <div class="nav-logo">
+                <span>🍺</span>
+                <span>Reykjavík Beer Tracker</span>
+            </div>
+            <div class="nav-links">
+                <button class="nav-button active" onclick="showSection('home')">Home</button>
+                <button class="nav-button" onclick="showSection('map')">Map</button>
+                <button class="nav-button" onclick="showSection('rating')">Rate</button>
+                <button class="nav-button" onclick="showSection('scoreboard')">Scoreboard</button>
+                <button class="nav-button" onclick="showSection('stats')">My Stats</button>
+                <button class="nav-button" onclick="showSection('drunk-meter')">Drunk Meter</button>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav" id="mobile-nav">
+        <div class="mobile-nav-links">
+            <button class="mobile-nav-button active" onclick="showSection('home'); toggleMobileMenu()">🏠 Home</button>
+            <button class="mobile-nav-button" onclick="showSection('map'); toggleMobileMenu()">🗺️ Map</button>
+            <button class="mobile-nav-button" onclick="showSection('rating'); toggleMobileMenu()">⭐ Rate</button>
+            <button class="mobile-nav-button" onclick="showSection('scoreboard'); toggleMobileMenu()">🏆 Scoreboard</button>
+            <button class="mobile-nav-button" onclick="showSection('stats'); toggleMobileMenu()">📊 My Stats</button>
+            <button class="mobile-nav-button" onclick="showSection('drunk-meter'); toggleMobileMenu()">🍻 Drunk Meter</button>
+        </div>
+    </div>
+
+    <!-- ========================================
+         MAIN CONTENT SECTIONS
+    ======================================== -->
+    <div class="main-content">
+        <!-- HOME SECTION -->
+        <div id="home" class="section active">
+            <div class="home-section">
+                <div class="home-content">
+                    <div class="home-header">
+                        <h1>🍺 Reykjavík Beer Tracker</h1>
+                        <p>Discover, Rate, and Track Your Beer Journey in Iceland's Capital</p>
+                    </div>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card" onclick="showSection('map')">
+                            <div class="feature-icon">🗺️</div>
+                            <h3>Explore Map</h3>
+                            <p>Find the best breweries, craft beer bars, and traditional pubs across Reykjavík</p>
+                        </div>
+                        
+                        <div class="feature-card" onclick="showSection('rating')">
+                            <div class="feature-icon">⭐</div>
+                            <h3>Rate Beers</h3>
+                            <p>Keep track of every beer you try and share your thoughts</p>
+                        </div>
+                        
+                        <div class="feature-card" onclick="showSection('scoreboard')">
+                            <div class="feature-icon">🏆</div>
+                            <h3>Scoreboard</h3>
+                            <p>See your highest-rated beers and discover new favorites</p>
+                        </div>
+                        
+                        <div class="feature-card" onclick="showSection('stats')">
+                            <div class="feature-icon">📊</div>
+                            <h3>My Stats</h3>
+                            <p>Track your progress and unlock achievements</p>
+                        </div>
+                        
+                        <div class="feature-card" onclick="showSection('drunk-meter')">
+                            <div class="feature-icon">🍻</div>
+                            <h3>Drunk Meter</h3>
+                            <p>Calculate your current intoxication level based on today's beers</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAP SECTION -->
+        <div id="map-section" class="section">
+            <div class="map-container">
+                <div class="map-controls">
+                    <div class="controls-header">
+                        <span>🍻</span>
+                        <span>Find Your Perfect Pint</span>
+                    </div>
+                    
+                    <input type="text" class="search-box" id="searchBox" placeholder="Search venues..." onkeyup="searchVenues()">
+                    
+                    <div class="filter-section">
+                        <div class="filter-title">Venue Type</div>
+                        <button class="filter-button active" onclick="filterByType('all', this)">🍺 All Venues</button>
+                        <button class="filter-button" onclick="filterByType('brewery', this)">🏭 Breweries</button>
+                        <button class="filter-button" onclick="filterByType('craftbar', this)">🍻 Craft Beer Bars</button>
+                        <button class="filter-button" onclick="filterByType('pub', this)">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Traditional Pubs</button>
+                        <button class="filter-button" onclick="filterByType('restaurant', this)">🍽️ Beer Restaurants</button>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <div class="filter-title">Beer Style</div>
+                        <button class="filter-button" onclick="filterByBeer('ipa', this)">🌿 IPA Specialists</button>
+                        <button class="filter-button" onclick="filterByBeer('lager', this)">🍺 Lager & Pilsner</button>
+                        <button class="filter-button" onclick="filterByBeer('stout', this)">⚫ Stout & Porter</button>
+                        <button class="filter-button" onclick="filterByBeer('sour', this)">🍋 Sour Beers</button>
+                    </div>
+                    
+                    <button class="filter-button reset-button" onclick="resetView()">🎯 Reset Map</button>
+                </div>
+                
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- RATING SECTION -->
+        <div id="rating" class="section">
+            <div class="rating-section">
+                <div class="section-header">
+                    <h2>⭐ Rate a Beer</h2>
+                    <p>Keep track of every beer you try</p>
+                </div>
+                
+                <div class="rating-container">
+                    <form onsubmit="submitRating(event)">
+                        <div class="form-group">
+                            <label for="venue-select">Venue</label>
+                            <select id="venue-select" class="form-control" required>
+                                <option value="">Select a venue...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="beer-select">Beer</label>
+                            <select id="beer-select" class="form-control" required>
+                                <option value="">Select a beer...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="beer-size">Size</label>
+                            <select id="beer-size" class="form-control" required>
+                                <option value="">Select size...</option>
+                                <option value="330ml">330ml</option>
+                                <option value="440ml">440ml</option>
+                                <option value="500ml">500ml</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Rating</label>
+                            <div style="display: flex; align-items: center;">
+                                <div class="star-rating" id="star-rating">
+                                    <span class="star" data-value="1">★</span>
+                                    <span class="star" data-value="2">★</span>
+                                    <span class="star" data-value="3">★</span>
+                                    <span class="star" data-value="4">★</span>
+                                    <span class="star" data-value="5">★</span>
+                                </div>
+                                <span class="rating-display" id="rating-display">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="beer-notes">Notes (optional)</label>
+                            <textarea id="beer-notes" class="form-control" rows="3" placeholder="What did you think of this beer?"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="submit-button">Save Rating</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCOREBOARD SECTION -->
+        <div id="scoreboard" class="section">
+            <div class="scoreboard-section">
+                <div class="section-header">
+                    <h2>🏆 Beer Scoreboard</h2>
+                    <p>Your personal beer ratings leaderboard</p>
+                </div>
+                
+                <div class="scoreboard-container">
+                    <div class="podium-container" id="podium-container">
+                        <!-- Podium will be dynamically generated -->
+                    </div>
+                    
+                    <div class="scoreboard-filters">
+                        <button class="filter-chip active" onclick="filterScoreboard('all', this)">All Beers</button>
+                        <button class="filter-chip" onclick="filterScoreboard('top10', this)">Top 10</button>
+                        <button class="filter-chip" onclick="filterScoreboard('5star', this)">5 Stars</button>
+                        <button class="filter-chip" onclick="filterScoreboard('recent', this)">Recent</button>
+                    </div>
+                    
+                    <div id="scoreboard-list">
+                        <!-- Dynamic content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS SECTION -->
+        <div id="stats" class="section">
+            <div class="stats-section">
+                <div class="section-header">
+                    <h2>📊 Your Beer Journey</h2>
+                    <p>Track your progress and achievements</p>
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🍺</div>
+                            <div class="stat-number" id="total-beers">0</div>
+                            <div class="stat-label">Beers Tried</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">📍</div>
+                            <div class="stat-number" id="venues-visited">0</div>
+                            <div class="stat-label">Venues Visited</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-number" id="avg-rating">0.0</div>
+                            <div class="stat-label">Average Rating</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">🏆</div>
+                            <div class="stat-number" id="favorite-style">-</div>
+                            <div class="stat-label">Favorite Style</div>
+                        </div>
+                    </div>
+                    
+                    <div class="achievements-section">
+                        <h3 class="achievements-header">🎯 Achievements</h3>
+                        <div id="achievements-list">
+                            <!-- Dynamic achievements will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DRUNK METER SECTION -->
+        <div id="drunk-meter" class="section">
+            <div class="drunk-meter-section">
+                <div class="section-header">
+                    <h2>🍻 Drunk Meter</h2>
+                    <p>Your current intoxication level based on today's consumption</p>
+                </div>
+                
+                <div class="drunk-meter-container">
+                    <div class="meter-display">
+                        <div class="meter-icon" id="meter-icon">😊</div>
+                        <div class="drunk-level sober" id="drunk-level">Sober</div>
+                        
+                        <div class="meter-bar-container">
+                            <div class="meter-bar" id="meter-bar" style="width: 0%; background: #27ae60;"></div>
+                        </div>
+                        
+                        <div class="meter-stats">
+                            <div class="meter-stat">
+                                <div class="meter-stat-value" id="beers-today">0</div>
+                                <div class="meter-stat-label">Beers Today</div>
+                            </div>
+                            <div class="meter-stat">
+                                <div class="meter-stat-value" id="total-ml">0ml</div>
+                                <div class="meter-stat-label">Total Volume</div>
+                            </div>
+                            <div class="meter-stat">
+                                <div class="meter-stat-value" id="alcohol-units">0</div>
+                                <div class="meter-stat-label">Alcohol Units</div>
+                            </div>
+                            <div class="meter-stat">
+                                <div class="meter-stat-value" id="time-elapsed">0h</div>
+                                <div class="meter-stat-label">Time Elapsed</div>
+                            </div>
+                        </div>
+                        
+                        <div class="warning-message" id="warning-message" style="display: none;">
+                            <span class="warning-icon">⚠️</span>
+                            <span id="warning-text"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="today-beers">
+                        <h3 class="today-beers-header">Today's Beers</h3>
+                        <div id="today-beers-list">
+                            <p style="text-align: center; color: #666;">No beers logged today yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================
+         MODAL WINDOWS
+    ======================================== -->
+    <!-- Rating History Modal -->
+    <div class="rating-history-modal" id="rating-history-modal" onclick="closeModalIfClickedOutside(event)">
+        <div class="rating-history-content" onclick="event.stopPropagation()">
+            <div class="rating-history-header">
+                <h3 class="rating-history-title" id="modal-beer-name">Beer Name</h3>
+                <button class="close-modal" onclick="closeRatingHistoryModal()">×</button>
+            </div>
+            
+            <div class="rating-history-summary">
+                <div class="average-rating" id="modal-average-rating">4.5</div>
+                <div class="rating-count" id="modal-rating-count">Based on 3 ratings</div>
+            </div>
+            
+            <div class="rating-history-list" id="modal-rating-history">
+                <!-- Rating history items will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ========================================
+         EXTERNAL SCRIPTS
+    ======================================== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    
+    <script>
+        /* ========================================
+           GLOBAL VARIABLES & DATA
+        ======================================== */
+        
+        // Application State
+        let map = null;
+        let allMarkers = [];
+        let currentRating = 0;
+        let userRatings = [];
+        
+        // Available Beers Database
+        const AVAILABLE_BEERS = [
+            { name: 'Víking Lager', abv: '4.5%', style: 'Lager' },
+            { name: 'Víking Lite Lime', abv: '4.4%', style: 'Light Lager' },
+            { name: 'Víking Gylltur', abv: '5.6%', style: 'Light Lager' },
+            { name: 'Víking Lite', abv: '4.4%', style: 'Light Lager' },
+            { name: 'Einstök Arctic Berry Sour', abv: '5%', style: 'Sour' },
+            { name: 'Einstök Lite White', abv: '4.4%', style: 'Wheat' },
+            { name: 'Einstök White Ale', abv: '5.2%', style: 'Wheat' },
+            { name: 'Einstök Arctic Pale Ale', abv: '5.6%', style: 'Pale Ale' },
+            { name: 'Gull Lite', abv: '4.4%', style: 'Light Lager' },
+            { name: 'Gull Lite Premium', abv: '4.2%', style: 'Light Lager' },
+            { name: 'Tuborg Classic', abv: '4.6%', style: 'Light Lager' },
+            { name: 'Tuborg Grön', abv: '4.5%', style: 'Light Lager' },
+            { name: 'Tuborg Gold', abv: '5.5%', style: 'Pilsner' },
+            { name: 'Boli Premium', abv: '5.6%', style: 'Light Lager' },
+            { name: 'Carlsberg', abv: '5%', style: 'Light Lager' },
+            { name: 'Garún nr. 19', abv: '11.5%', style: 'Stout' },
+            { name: 'úlfur úlfur nr. 17', abv: '9%', style: 'IPA' },
+            { name: 'Stella Artois', abv: '5%', style: 'Pilsner' },
+            { name: '1664 Blanc', abv: '5%', style: 'Wheat' },
+            { name: 'Peroni Nastro', abv: '5%', style: 'Lager' },
+            { name: 'Guinness', abv: '4.2%', style: 'Stout' },
+            { name: 'Slots Guld', abv: '5.9%', style: 'Light Lager' }
+        ];
+
+        // Beer Venues Database
+        const BEER_VENUES = [
+            {
+                name: 'Borg Brugghús',
+                coords: [64.1475, -21.9345],
+                type: 'brewery',
+                specialty: ['ipa', 'lager', 'stout'],
+                rating: '4.8/5',
+                priceRange: '2500-4000 ISK',
+                highlights: 'Award-winning craft brewery with 12 taps',
+                description: 'Iceland\'s most acclaimed craft brewery, known for Garún IPA and Fenrir beer series',
+                hours: 'Daily 16:00-01:00',
+                address: 'Grandi 8-10'
+            },
+            {
+                name: 'Mikkeller & Friends',
+                coords: [64.1489, -21.9298],
+                type: 'craftbar',
+                specialty: ['ipa', 'sour', 'stout'],
+                rating: '4.7/5',
+                priceRange: '1800-3500 ISK',
+                highlights: '20+ rotating taps, Danish craft beer experts',
+                description: 'World-famous Mikkeller brewery\'s Reykjavík outpost with constantly changing selection',
+                hours: 'Sun-Thu 15:00-23:00, Fri-Sat 15:00-01:00',
+                address: 'Hverfisgata 12'
+            },
+            {
+                name: 'Bryggjan Brugghús',
+                coords: [64.1520, -21.9356],
+                type: 'brewery',
+                specialty: ['lager', 'ipa'],
+                rating: '4.6/5',
+                priceRange: '2200-3800 ISK',
+                highlights: 'Harbor brewery with fresh seafood',
+                description: 'Waterfront brewery specializing in Nordic-style lagers and IPAs',
+                hours: 'Daily 11:30-23:00',
+                address: 'Grandagarður 8'
+            },
+            {
+                name: 'Micro Bar',
+                coords: [64.1452, -21.9412],
+                type: 'craftbar',
+                specialty: ['ipa', 'stout', 'sour'],
+                rating: '4.9/5',
+                priceRange: '1600-3200 ISK',
+                highlights: 'Tiny bar, huge beer selection - 300+ bottles',
+                description: 'Cozy craft beer haven with knowledgeable staff and rare imports',
+                hours: 'Daily 17:00-01:00',
+                address: 'Vesturgata 2'
+            },
+            {
+                name: 'Ölverk Pizza & Brewery',
+                coords: [64.1441, -21.9521],
+                type: 'restaurant',
+                specialty: ['lager', 'ipa'],
+                rating: '4.5/5',
+                priceRange: '2000-3500 ISK',
+                highlights: 'Pizza & beer pairing specialists',
+                description: 'Award-winning pizzeria with house-brewed beers and perfect pairings',
+                hours: 'Daily 17:00-23:00',
+                address: 'Baldusgata 2'
+            },
+            {
+                name: 'Kex Hostel Bar',
+                coords: [64.1475, -21.9298],
+                type: 'pub',
+                specialty: ['lager', 'ipa'],
+                rating: '4.4/5',
+                priceRange: '1800-3000 ISK',
+                highlights: 'Hip hostel bar with local atmosphere',
+                description: 'Popular gathering spot with good beer selection and live music',
+                hours: 'Daily 07:00-01:00',
+                address: 'Skúlagata 28'
+            },
+            {
+                name: 'Petersen Svítan',
+                coords: [64.1463, -21.9356],
+                type: 'pub',
+                specialty: ['lager', 'stout'],
+                rating: '4.3/5',
+                priceRange: '1500-2800 ISK',
+                highlights: 'Traditional Icelandic pub atmosphere',
+                description: 'Historic pub with classic beers and authentic local vibe',
+                hours: 'Mon-Thu 16:00-01:00, Fri-Sun 14:00-03:00',
+                address: 'Ingólfsstræti 3'
+            },
+            {
+                name: 'Taphouse',
+                coords: [64.1481, -21.9287],
+                type: 'craftbar',
+                specialty: ['ipa', 'lager', 'stout'],
+                rating: '4.8/5',
+                priceRange: '1800-3600 ISK',
+                highlights: '40+ taps, rotating selection',
+                description: 'Ultimate craft beer destination with massive tap selection',
+                hours: 'Daily 15:00-01:00',
+                address: 'Hverfisgata 105'
+            }
+        ];
+        
+        /* ========================================
+           UTILITY FUNCTIONS
+        ======================================== */
+        
+        // Safe string escaping for HTML injection
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Escape quotes for onclick handlers
+        function escapeQuotes(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Safe localStorage operations
+        function saveRatings() {
+            try {
+                localStorage.setItem('beerRatings', JSON.stringify(userRatings));
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+                showToast('Warning: Could not save data locally');
+            }
+        }
+        
+        function loadRatings() {
+            try {
+                const storedRatings = localStorage.getItem('beerRatings');
+                return storedRatings ? JSON.parse(storedRatings) : [];
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+                showToast('Error loading saved data');
+                return [];
+            }
+        }
+        
+        /* ========================================
+           NAVIGATION FUNCTIONS
+        ======================================== */
+        
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            const mobileNav = document.getElementById('mobile-nav');
+            mobileNav.classList.toggle('show');
+        }
+        
+        // Show section with proper cleanup
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show selected section
+            if (sectionName === 'map') {
+                document.getElementById('map-section').classList.add('active');
+                setTimeout(() => initializeMap(), 100);
+            } else if (sectionName === 'drunk-meter') {
+                document.getElementById('drunk-meter').classList.add('active');
+            } else {
+                document.getElementById(sectionName).classList.add('active');
+            }
+            
+            // Update navigation states
+            updateNavButtons(sectionName);
+            
+            // Load section-specific content
+            loadSectionContent(sectionName);
+        }
+        
+        // Update navigation button states
+        function updateNavButtons(sectionName) {
+            const buttonMap = {
+                'home': 'Home',
+                'map': 'Map', 
+                'rating': 'Rate',
+                'scoreboard': 'Scoreboard',
+                'stats': 'My Stats',
+                'drunk-meter': 'Drunk Meter'
+            };
+            
+            // Update desktop nav
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent === buttonMap[sectionName]) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update mobile nav
+            document.querySelectorAll('.mobile-nav-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(buttonMap[sectionName])) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        // Load content for specific sections
+        function loadSectionContent(sectionName) {
+            switch(sectionName) {
+                case 'rating':
+                    loadVenueOptions();
+                    break;
+                case 'scoreboard':
+                    loadScoreboard();
+                    break;
+                case 'stats':
+                    loadStats();
+                    break;
+                case 'drunk-meter':
+                    loadDrunkMeter();
+                    break;
+            }
+        }
+        
+        /* ========================================
+           MAP FUNCTIONS
+        ======================================== */
+        
+        // Initialize Leaflet map
+        function initializeMap() {
+            if (!map) {
+                map = L.map('map').setView([64.1466, -21.9426], 13);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19,
+                    minZoom: 1
+                }).addTo(map);
+                
+                createMapMarkers();
+                addMapLegend();
+            } else {
+                map.invalidateSize();
+            }
+        }
+        
+        // Create venue markers
+        function createMapMarkers() {
+            const typeColors = {
+                'brewery': '#e74c3c',
+                'craftbar': '#3498db', 
+                'pub': '#f39c12',
+                'restaurant': '#27ae60'
+            };
+            
+            BEER_VENUES.forEach(venue => {
+                const color = typeColors[venue.type];
+                const size = venue.type === 'brewery' ? 12 : 10;
+                
+                const marker = L.circleMarker(venue.coords, {
+                    radius: size,
+                    fillColor: color,
+                    color: '#ffffff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+                
+                const popupContent = createPopupContent(venue);
+                marker.bindPopup(popupContent);
+                marker.addTo(map);
+                allMarkers.push({marker: marker, venue: venue});
+            });
+        }
+        
+        // Create popup content for venues
+        function createPopupContent(venue) {
+            return `
+                <div class="beer-popup">
+                    <h3>${escapeHtml(venue.name)}</h3>
+                    <div class="beer-info"><strong>Type:</strong> ${venue.type.charAt(0).toUpperCase() + venue.type.slice(1)}</div>
+                    <div class="beer-info"><strong>Rating:</strong> ${venue.rating}</div>
+                    <div class="beer-info"><strong>Price:</strong> ${venue.priceRange}</div>
+                    <div class="beer-info"><strong>Address:</strong> ${venue.address}</div>
+                    <div class="beer-info"><strong>Hours:</strong> ${venue.hours}</div>
+                    <div class="beer-highlights">
+                        <strong>Highlights:</strong> ${venue.highlights}
+                    </div>
+                    <div class="beer-info">${venue.description}</div>
+                    <div class="popup-actions">
+                        <button class="popup-button" onclick="rateAtVenue('${escapeQuotes(venue.name)}')">Rate a Beer Here</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Add map legend
+        function addMapLegend() {
+            const legend = L.control({position: 'bottomright'});
+            legend.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'map-legend');
+                div.style.cssText = `
+                    background: rgba(26, 26, 26, 0.95);
+                    color: white;
+                    padding: 12px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                `;
+                
+                div.innerHTML = `
+                    <h4 style="margin: 0 0 8px 0; color: #f39c12;">🍺 Venue Types</h4>
+                    <div><i style="background: #e74c3c; width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 8px;"></i>Breweries</div>
+                    <div><i style="background: #3498db; width: 10px; height: 10px; display: inline-block; border-radius: 50%; margin-right: 8px;"></i>Craft Beer Bars</div>
+                    <div><i style="background: #f39c12; width: 10px; height: 10px; display: inline-block; border-radius: 50%; margin-right: 8px;"></i>Traditional Pubs</div>
+                    <div><i style="background: #27ae60; width: 10px; height: 10px; display: inline-block; border-radius: 50%; margin-right: 8px;"></i>Beer Restaurants</div>
+                `;
+                return div;
+            };
+            legend.addTo(map);
+        }
+        
+        // Map filter functions
+        function filterByType(type, buttonElement) {
+            updateFilterButtons(buttonElement, '.map-controls .filter-button');
+            
+            allMarkers.forEach(({marker, venue}) => {
+                if (type === 'all' || venue.type === type) {
+                    marker.addTo(map);
+                } else {
+                    map.removeLayer(marker);
+                }
+            });
+        }
+        
+        function filterByBeer(beerType, buttonElement) {
+            updateFilterButtons(buttonElement, '.map-controls .filter-button');
+            
+            allMarkers.forEach(({marker, venue}) => {
+                if (venue.specialty.includes(beerType)) {
+                    marker.addTo(map);
+                } else {
+                    map.removeLayer(marker);
+                }
+            });
+        }
+        
+        function searchVenues() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            
+            allMarkers.forEach(({marker, venue}) => {
+                const searchText = `${venue.name} ${venue.description} ${venue.highlights}`.toLowerCase();
+                if (searchText.includes(searchTerm)) {
+                    marker.addTo(map);
+                } else {
+                    map.removeLayer(marker);
+                }
+            });
+        }
+        
+        function resetView() {
+            map.setView([64.1466, -21.9426], 13);
+            document.getElementById('searchBox').value = '';
+            
+            // Reset filter buttons
+            document.querySelectorAll('.map-controls .filter-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes('All Venues')) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Show all markers
+            allMarkers.forEach(({marker}) => marker.addTo(map));
+        }
+        
+        /* ========================================
+           RATING FUNCTIONS
+        ======================================== */
+        
+        // Load venue and beer options
+        function loadVenueOptions() {
+            loadVenues();
+            loadBeers();
+        }
+        
+        function loadVenues() {
+            const venueSelect = document.getElementById('venue-select');
+            venueSelect.innerHTML = '<option value="">Select a venue...</option>';
+            
+            BEER_VENUES.forEach(venue => {
+                const option = document.createElement('option');
+                option.value = venue.name;
+                option.textContent = venue.name;
+                venueSelect.appendChild(option);
+            });
+        }
+        
+        function loadBeers() {
+            const beerSelect = document.getElementById('beer-select');
+            beerSelect.innerHTML = '<option value="">Select a beer...</option>';
+            
+            AVAILABLE_BEERS.forEach(beer => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(beer);
+                option.textContent = `${beer.name} (${beer.abv} - ${beer.style})`;
+                beerSelect.appendChild(option);
+            });
+        }
+        
+        // Star rating system
+        function initializeStarRating() {
+            const starRating = document.getElementById('star-rating');
+            const ratingDisplay = document.getElementById('rating-display');
+            
+            if (!starRating || !ratingDisplay) return;
+            
+            function handleStarInteraction(e) {
+                if (!e.target.classList.contains('star')) return;
+                
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const width = rect.width;
+                const starValue = parseInt(e.target.dataset.value);
+                
+                currentRating = x < width / 2 ? starValue - 0.5 : starValue;
+                updateStarDisplay();
+                ratingDisplay.textContent = currentRating;
+            }
+            
+            starRating.addEventListener('click', handleStarInteraction);
+            starRating.addEventListener('touchend', handleStarInteraction);
+            
+            starRating.addEventListener('mousemove', function(e) {
+                if (!e.target.classList.contains('star')) return;
+                
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const width = rect.width;
+                const starValue = parseInt(e.target.dataset.value);
+                
+                const hoverRating = x < width / 2 ? starValue - 0.5 : starValue;
+                updateStarDisplay(hoverRating);
+            });
+            
+            starRating.addEventListener('mouseleave', () => updateStarDisplay());
+        }
+        
+        function updateStarDisplay(rating = currentRating) {
+            document.querySelectorAll('.star').forEach((star) => {
+                const starValue = parseInt(star.dataset.value);
+                star.classList.remove('full', 'half');
+                
+                if (starValue <= rating) {
+                    star.classList.add('full');
+                } else if (starValue - 0.5 === rating) {
+                    star.classList.add('half');
+                }
+            });
+        }
+        
+        // Submit rating form
+        function submitRating(event) {
+            event.preventDefault();
+            
+            try {
+                // Validate form
+                if (!validateRatingForm()) return;
+                
+                // Create rating object
+                const rating = createRatingObject();
+                
+                // Save rating
+                userRatings.push(rating);
+                saveRatings();
+                
+                // Reset form
+                resetRatingForm(event.target);
+                
+                showToast('Beer rating saved successfully! 🍺');
+                checkAchievements();
+                
+                // Update drunk meter if visible
+                if (document.getElementById('drunk-meter').classList.contains('active')) {
+                    loadDrunkMeter();
+                }
+            } catch (error) {
+                console.error('Error submitting rating:', error);
+                showToast('Error saving rating. Please try again.');
+            }
+        }
+        
+        function validateRatingForm() {
+            if (currentRating === 0) {
+                showToast('Please select a rating');
+                return false;
+            }
+            
+            const required = ['venue-select', 'beer-select', 'beer-size'];
+            for (const fieldId of required) {
+                if (!document.getElementById(fieldId).value) {
+                    showToast('Please fill in all required fields');
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        function createRatingObject() {
+            const beerData = JSON.parse(document.getElementById('beer-select').value);
+            
+            return {
+                id: Date.now(),
+                venue: document.getElementById('venue-select').value,
+                beer: beerData.name,
+                style: beerData.style,
+                abv: beerData.abv,
+                size: document.getElementById('beer-size').value,
+                rating: currentRating,
+                notes: document.getElementById('beer-notes').value.trim(),
+                date: new Date().toISOString()
+            };
+        }
+        
+        function resetRatingForm(form) {
+            form.reset();
+            currentRating = 0;
+            updateStarDisplay();
+            document.getElementById('rating-display').textContent = '0';
+        }
+        
+        function rateAtVenue(venueName) {
+            showSection('rating');
+            setTimeout(() => {
+                document.getElementById('venue-select').value = venueName;
+            }, 100);
+        }
+        
+        /* ========================================
+           SCOREBOARD FUNCTIONS
+        ======================================== */
+        
+        // Calculate averaged beer ratings
+        function getAveragedBeerRatings() {
+            const beerGroups = {};
+            
+            // Group ratings by beer name
+            userRatings.forEach(rating => {
+                if (!beerGroups[rating.beer]) {
+                    beerGroups[rating.beer] = [];
+                }
+                beerGroups[rating.beer].push(rating);
+            });
+            
+            // Calculate averages
+            return Object.keys(beerGroups).map(beerName => {
+                const ratings = beerGroups[beerName];
+                const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+                const mostRecentRating = ratings.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                
+                return {
+                    beer: beerName,
+                    averageRating: Math.round(avgRating * 2) / 2,
+                    rawAverage: avgRating,
+                    ratingCount: ratings.length,
+                    ratings: ratings,
+                    style: mostRecentRating.style,
+                    abv: mostRecentRating.abv,
+                    lastVenue: mostRecentRating.venue,
+                    lastRated: mostRecentRating.date
+                };
+            });
+        }
+        
+        // Load scoreboard with podium
+        function loadScoreboard() {
+            const podiumContainer = document.getElementById('podium-container');
+            const scoreboardList = document.getElementById('scoreboard-list');
+            
+            if (userRatings.length === 0) {
+                podiumContainer.innerHTML = `
+                    <div class="podium-title">🏆 Hall of Fame</div>
+                    <div class="no-ratings-message">No ratings yet. Start rating beers to see them here!</div>
+                `;
+                scoreboardList.innerHTML = '';
+                return;
+            }
+            
+            const averagedBeers = getAveragedBeerRatings();
+            const sortedBeers = averagedBeers.sort((a, b) => b.averageRating - a.averageRating);
+            
+            createPodium(sortedBeers.slice(0, 3), podiumContainer);
+            createBeerList(sortedBeers, scoreboardList);
+        }
+        
+        function createPodium(top3, container) {
+            let podiumHTML = '<div class="podium-title">🏆 Hall of Fame</div>';
+            
+            if (top3.length > 0) {
+                podiumHTML += '<div class="podium">';
+                
+                // Add places in order: 2nd, 1st, 3rd
+                if (top3.length > 1) {
+                    podiumHTML += createPodiumPlace(top3[1], 2);
+                }
+                podiumHTML += createPodiumPlace(top3[0], 1);
+                if (top3.length > 2) {
+                    podiumHTML += createPodiumPlace(top3[2], 3);
+                }
+                
+                podiumHTML += '</div>';
+            }
+            
+            container.innerHTML = podiumHTML;
+        }
+        
+        function createPodiumPlace(beer, position) {
+            const escapedBeerName = escapeQuotes(beer.beer);
+            const stars = '★'.repeat(Math.floor(beer.averageRating)) + (beer.averageRating % 1 !== 0 ? '☆' : '');
+            const heights = { 1: 150, 2: 120, 3: 90 };
+            const labels = { 1: '1st', 2: '2nd', 3: '3rd' };
+            
+            return `
+                <div class="podium-place place-${position}" onclick="showBeerHistory('${escapedBeerName}')">
+                    <div class="podium-beer">
+                        <div class="podium-beer-name">${escapeHtml(beer.beer)}</div>
+                        <div class="podium-beer-venue">${escapeHtml(beer.lastVenue)}</div>
+                        <div class="podium-beer-rating">${stars}</div>
+                        <div class="podium-beer-count">${beer.ratingCount} rating${beer.ratingCount > 1 ? 's' : ''}</div>
+                    </div>
+                    <div class="podium-stand">
+                        <div class="podium-number">${position}</div>
+                        <div class="podium-block" style="height: ${heights[position]}px;">${labels[position]}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createBeerList(beers, container) {
+            container.innerHTML = beers.map(beer => {
+                const stars = '★'.repeat(Math.floor(beer.averageRating)) + (beer.averageRating % 1 !== 0 ? '☆' : '');
+                const lastRatedDate = new Date(beer.lastRated).toLocaleDateString();
+                const escapedBeerName = escapeQuotes(beer.beer);
+                
+                return `
+                    <div class="beer-card" onclick="showBeerHistory('${escapedBeerName}')">
+                        <div class="beer-card-header">
+                            <div>
+                                <div class="beer-name">${escapeHtml(beer.beer)}</div>
+                                <div class="beer-venue">Last tried at ${escapeHtml(beer.lastVenue)}</div>
+                            </div>
+                            <div class="beer-rating">${stars} ${beer.averageRating.toFixed(1)}</div>
+                        </div>
+                        <div class="beer-details">
+                            <span>Style: ${beer.style}</span>
+                            <span>ABV: ${beer.abv || 'N/A'}</span>
+                            <span>Ratings: ${beer.ratingCount}</span>
+                            <span>Last rated: ${lastRatedDate}</span>
+                        </div>
+                        <div class="click-hint">Click to view rating history</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Filter scoreboard
+        function filterScoreboard(filter, buttonElement) {
+            updateFilterButtons(buttonElement, '.filter-chip');
+            
+            const averagedBeers = getAveragedBeerRatings();
+            let filteredBeers = [...averagedBeers];
+            
+            switch (filter) {
+                case 'top10':
+                    filteredBeers = filteredBeers.sort((a, b) => b.averageRating - a.averageRating).slice(0, 10);
+                    break;
+                case '5star':
+                    filteredBeers = filteredBeers.filter(b => b.averageRating === 5).sort((a, b) => b.averageRating - a.averageRating);
+                    break;
+                case 'recent':
+                    filteredBeers = filteredBeers.sort((a, b) => new Date(b.lastRated) - new Date(a.lastRated)).slice(0, 10);
+                    break;
+                default:
+                    filteredBeers = filteredBeers.sort((a, b) => b.averageRating - a.averageRating);
+            }
+            
+            const scoreboardList = document.getElementById('scoreboard-list');
+            
+            if (filteredBeers.length === 0) {
+                scoreboardList.innerHTML = '<p style="text-align: center; color: #666;">No beers match this filter.</p>';
+                return;
+            }
+            
+            createBeerList(filteredBeers, scoreboardList);
+        }
+        
+        // Update filter button states
+        function updateFilterButtons(activeButton, selector) {
+            if (!activeButton) return;
+            
+            document.querySelectorAll(selector).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            activeButton.classList.add('active');
+        }
+        
+        /* ========================================
+           MODAL FUNCTIONS
+        ======================================== */
+        
+        // Show beer history modal
+        function showBeerHistory(beerName) {
+            try {
+                const beerRatings = userRatings.filter(r => r.beer === beerName);
+                
+                if (beerRatings.length === 0) {
+                    showToast('No ratings found for this beer');
+                    return;
+                }
+                
+                const sortedRatings = beerRatings.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const avgRating = beerRatings.reduce((sum, r) => sum + r.rating, 0) / beerRatings.length;
+                
+                populateModal(beerName, avgRating, beerRatings.length, sortedRatings);
+                document.getElementById('rating-history-modal').classList.add('show');
+            } catch (error) {
+                console.error('Error showing beer history:', error);
+                showToast('Error loading beer history');
+            }
+        }
+        
+        function populateModal(beerName, avgRating, ratingCount, ratings) {
+            document.getElementById('modal-beer-name').textContent = beerName;
+            document.getElementById('modal-average-rating').textContent = avgRating.toFixed(1);
+            document.getElementById('modal-rating-count').textContent = `Based on ${ratingCount} rating${ratingCount > 1 ? 's' : ''}`;
+            
+            const historyHTML = ratings.map(rating => {
+                const stars = '★'.repeat(Math.floor(rating.rating)) + (rating.rating % 1 !== 0 ? '☆' : '');
+                const date = new Date(rating.date).toLocaleDateString();
+                const time = new Date(rating.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                return `
+                    <div class="rating-history-item">
+                        <div class="rating-history-item-header">
+                            <div class="rating-history-venue">${escapeHtml(rating.venue)}</div>
+                            <div class="rating-history-stars">${stars} ${rating.rating}</div>
+                        </div>
+                        <div class="rating-history-details">
+                            <span>Size: ${rating.size || 'N/A'}</span>
+                            <span>Date: ${date}</span>
+                            <span>Time: ${time}</span>
+                        </div>
+                        ${rating.notes ? `<div class="rating-history-notes">${escapeHtml(rating.notes)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('modal-rating-history').innerHTML = historyHTML;
+        }
+        
+        function closeRatingHistoryModal() {
+            document.getElementById('rating-history-modal').classList.remove('show');
+        }
+        
+        function closeModalIfClickedOutside(event) {
+            if (event.target.id === 'rating-history-modal') {
+                closeRatingHistoryModal();
+            }
+        }
+        
+        /* ========================================
+           STATS FUNCTIONS
+        ======================================== */
+        
+        function loadStats() {
+            const totalBeers = userRatings.length;
+            const uniqueBeers = [...new Set(userRatings.map(r => r.beer))].length;
+            const venuesVisited = [...new Set(userRatings.map(r => r.venue))].length;
+            const avgRating = totalBeers > 0 ? (userRatings.reduce((sum, r) => sum + r.rating, 0) / totalBeers).toFixed(1) : '0.0';
+            
+            // Find favorite style
+            const styleCounts = {};
+            userRatings.forEach(r => {
+                styleCounts[r.style] = (styleCounts[r.style] || 0) + 1;
+            });
+            const favoriteStyle = Object.keys(styleCounts).length > 0 
+                ? Object.entries(styleCounts).sort((a, b) => b[1] - a[1])[0][0] 
+                : '-';
+            
+            // Update stats display
+            document.getElementById('total-beers').textContent = uniqueBeers;
+            document.getElementById('venues-visited').textContent = venuesVisited;
+            document.getElementById('avg-rating').textContent = avgRating;
+            document.getElementById('favorite-style').textContent = favoriteStyle;
+            
+            loadAchievements();
+        }
+        
+        function loadAchievements() {
+            const uniqueBeers = [...new Set(userRatings.map(r => r.beer))].length;
+            const uniqueVenues = [...new Set(userRatings.map(r => r.venue))].length;
+            const uniqueStyles = [...new Set(userRatings.map(r => r.style))].length;
+            const fiveStarRatings = userRatings.filter(r => r.rating === 5).length;
+            
+            const achievements = [
+                {
+                    id: 'first-beer',
+                    icon: '🍺',
+                    name: 'First Sip',
+                    description: 'Rate your first beer',
+                    requirement: userRatings.length >= 1,
+                    progress: Math.min(userRatings.length, 1),
+                    total: 1
+                },
+                {
+                    id: 'beer-explorer',
+                    icon: '🗺️',
+                    name: 'Beer Explorer',
+                    description: 'Try beers at 5 different venues',
+                    requirement: uniqueVenues >= 5,
+                    progress: uniqueVenues,
+                    total: 5
+                },
+                {
+                    id: 'beer-connoisseur',
+                    icon: '👑',
+                    name: 'Beer Connoisseur',
+                    description: 'Try 25 different beers',
+                    requirement: uniqueBeers >= 25,
+                    progress: uniqueBeers,
+                    total: 25
+                },
+                {
+                    id: 'style-master',
+                    icon: '🎯',
+                    name: 'Style Master',
+                    description: 'Try at least 5 different beer styles',
+                    requirement: uniqueStyles >= 5,
+                    progress: uniqueStyles,
+                    total: 5
+                },
+                {
+                    id: 'perfect-score',
+                    icon: '⭐',
+                    name: 'Perfect Score',
+                    description: 'Give a beer a 5-star rating',
+                    requirement: fiveStarRatings > 0,
+                    progress: fiveStarRatings > 0 ? 1 : 0,
+                    total: 1
+                }
+            ];
+            
+            const achievementsList = document.getElementById('achievements-list');
+            achievementsList.innerHTML = achievements.map(achievement => `
+                <div class="achievement ${achievement.requirement ? 'unlocked' : ''}">
+                    <div class="achievement-icon">${achievement.icon}</div>
+                    <div class="achievement-info">
+                        <h4>${achievement.name}</h4>
+                        <p>${achievement.description}</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min((achievement.progress / achievement.total) * 100, 100)}%"></div>
+                        </div>
+                        <p style="font-size: 0.75rem; margin-top: 0.25rem;">${achievement.progress} / ${achievement.total}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function checkAchievements() {
+            if (document.getElementById('stats').classList.contains('active')) {
+                loadAchievements();
+            }
+        }
+        
+        /* ========================================
+           DRUNK METER FUNCTIONS
+        ======================================== */
+        
+        function loadDrunkMeter() {
+            const today = new Date().toDateString();
+            const todayBeers = userRatings.filter(rating => {
+                return new Date(rating.date).toDateString() === today;
+            }).sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const metrics = calculateDrunkMetrics(todayBeers);
+            updateMeterDisplay(metrics);
+            displayTodaysBeers(todayBeers);
+        }
+        
+        function calculateDrunkMetrics(todayBeers) {
+            let totalML = 0;
+            let totalAlcoholML = 0;
+            
+            todayBeers.forEach(beer => {
+                const ml = parseInt(beer.size) || 330;
+                const abv = parseFloat(beer.abv) || 5;
+                totalML += ml;
+                totalAlcoholML += (ml * abv / 100);
+            });
+            
+            const alcoholUnits = (totalAlcoholML / 10).toFixed(1);
+            
+            let timeElapsed = 0;
+            if (todayBeers.length > 0) {
+                const firstBeerTime = new Date(todayBeers[0].date);
+                const now = new Date();
+                timeElapsed = (now - firstBeerTime) / (1000 * 60 * 60); // Hours
+            }
+            
+            const adjustedUnits = Math.max(0, alcoholUnits - timeElapsed);
+            
+            return {
+                count: todayBeers.length,
+                totalML: totalML,
+                alcoholUnits: alcoholUnits,
+                adjustedUnits: adjustedUnits,
+                timeElapsed: timeElapsed
+            };
+        }
+        
+        function updateMeterDisplay(metrics) {
+            const levels = [
+                { max: 2, level: 'Sober', icon: '😊', color: '#3498db' },
+                { max: 5, level: 'Tipsy', icon: '😉', color: '#f39c12' },
+                { max: 8, level: 'Buzzed', icon: '😘', color: '#27ae60' },
+                { max: 10, level: 'Drunk', icon: '🥴', color: '#e74c3c' },
+                { max: 12, level: 'Smashed', icon: '🫨', color: '#9b59b6' },
+                { max: Infinity, level: 'Blackout', icon: '🤮', color: '#8b0000' }
+            ];
+            
+            const currentLevel = levels.find(level => metrics.adjustedUnits < level.max);
+            const width = Math.min((metrics.adjustedUnits / 12) * 100, 100);
+            
+            // Update display elements
+            document.getElementById('meter-icon').textContent = currentLevel.icon;
+            document.getElementById('drunk-level').textContent = currentLevel.level;
+            document.getElementById('drunk-level').className = `drunk-level ${currentLevel.level.toLowerCase()}`;
+            document.getElementById('meter-bar').style.width = `${width}%`;
+            document.getElementById('meter-bar').style.background = currentLevel.color;
+            
+            document.getElementById('beers-today').textContent = metrics.count;
+            document.getElementById('total-ml').textContent = `${metrics.totalML}ml`;
+            document.getElementById('alcohol-units').textContent = metrics.alcoholUnits;
+            document.getElementById('time-elapsed').textContent = metrics.timeElapsed > 0 ? `${metrics.timeElapsed.toFixed(1)}h` : '0h';
+            
+            updateWarningMessage(metrics.adjustedUnits);
+        }
+        
+        function updateWarningMessage(adjustedUnits) {
+            const warningMessage = document.getElementById('warning-message');
+            const warningText = document.getElementById('warning-text');
+            
+            const warnings = [
+                { min: 12, text: 'DANGER! You\'re in blackout territory. Stop drinking immediately and get help if needed!' },
+                { min: 10, text: 'You\'re smashed! Time to stop drinking and get some water and food.' },
+                { min: 8, text: 'You\'re drunk! Please drink water and consider calling it a night.' },
+                { min: 5, text: 'You\'re getting buzzed. Remember to pace yourself!' }
+            ];
+            
+            const warning = warnings.find(w => adjustedUnits >= w.min);
+            
+            if (warning) {
+                warningMessage.style.display = 'flex';
+                warningText.textContent = warning.text;
+            } else {
+                warningMessage.style.display = 'none';
+            }
+        }
+        
+        function displayTodaysBeers(todayBeers) {
+            const todayBeersList = document.getElementById('today-beers-list');
+            
+            if (todayBeers.length === 0) {
+                todayBeersList.innerHTML = '<p style="text-align: center; color: #666;">No beers logged today yet.</p>';
+                return;
+            }
+            
+            todayBeersList.innerHTML = todayBeers.map(beer => {
+                const time = new Date(beer.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return `
+                    <div class="today-beer-item">
+                        <div class="today-beer-info">
+                            <div class="today-beer-name">${escapeHtml(beer.beer)}</div>
+                            <div class="today-beer-details">${beer.size || '330ml'} • ${beer.abv || '5%'} ABV • ${escapeHtml(beer.venue)}</div>
+                        </div>
+                        <div class="today-beer-time">${time}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        /* ========================================
+           EVENT LISTENERS & INITIALIZATION
+        ======================================== */
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                console.log('🍺 Initializing Reykjavík Beer Tracker...');
+                
+                // Load saved data
+                userRatings = loadRatings();
+                
+                // Validate and clean data
+                userRatings = userRatings.filter(rating => 
+                    rating && 
+                    rating.beer && 
+                    rating.venue && 
+                    typeof rating.rating === 'number' && 
+                    rating.date
+                );
+                
+                // Initialize components
+                initializeStarRating();
+                
+                // Set up mobile touch handling
+                if ('ontouchstart' in window) {
+                    document.body.classList.add('touch-device');
+                }
+                
+                console.log(`✅ Loaded ${userRatings.length} beer ratings`);
+                
+            } catch (error) {
+                console.error('❌ Error initializing app:', error);
+                userRatings = [];
+                showToast('Error loading application data');
+            }
+        });
+        
+        // Handle mobile menu clicks
+        document.addEventListener('click', function(event) {
+            const mobileNav = document.getElementById('mobile-nav');
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            
+            if (mobileNav && mobileMenuBtn && 
+                !mobileNav.contains(event.target) && 
+                !mobileMenuBtn.contains(event.target)) {
+                mobileNav.classList.remove('show');
+            }
+        });
+        
+        // Handle orientation changes on mobile
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                if (map) {
+                    map.invalidateSize();
+                }
+            }, 500);
+        });
+        
+        // Prevent zoom on double tap for better mobile experience
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Keyboard shortcuts (optional enhancement)
+        document.addEventListener('keydown', function(event) {
+            if (event.altKey) {
+                switch(event.key) {
+                    case 'h':
+                        showSection('home');
+                        event.preventDefault();
+                        break;
+                    case 'm':
+                        showSection('map');
+                        event.preventDefault();
+                        break;
+                    case 'r':
+                        showSection('rating');
+                        event.preventDefault();
+                        break;
+                    case 's':
+                        showSection('scoreboard');
+                        event.preventDefault();
+                        break;
+                }
+            }
+            
+            // Close modal with Escape key
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('rating-history-modal');
+                if (modal && modal.classList.contains('show')) {
+                    closeRatingHistoryModal();
+                }
+            }
+        });
+        
+        /* ========================================
+           DEBUG & DEVELOPMENT HELPERS
+        ======================================== */
+        
+        // Development helper functions (remove in production)
+        window.debugBeerTracker = {
+            // Get current ratings
+            getRatings: () => userRatings,
+            
+            // Clear all data
+            clearData: () => {
+                userRatings = [];
+                localStorage.removeItem('beerRatings');
+                console.log('🧹 All data cleared');
+                showToast('All data cleared');
+            },
+            
+            // Add sample data for testing
+            addSampleData: () => {
+                const sampleRatings = [
+                    {
+                        id: Date.now() - 1000,
+                        venue: 'Borg Brugghús',
+                        beer: 'Garún nr. 19',
+                        style: 'Stout',
+                        abv: '11.5%',
+                        size: '330ml',
+                        rating: 4.5,
+                        notes: 'Rich and complex stout with coffee notes',
+                        date: new Date(Date.now() - 86400000).toISOString()
+                    },
+                    {
+                        id: Date.now() - 2000,
+                        venue: 'Micro Bar',
+                        beer: 'Einstök Arctic Pale Ale',
+                        style: 'Pale Ale',
+                        abv: '5.6%',
+                        size: '500ml',
+                        rating: 4,
+                        notes: 'Crisp and hoppy with citrus undertones',
+                        date: new Date(Date.now() - 172800000).toISOString()
+                    }
+                ];
+                
+                userRatings.push(...sampleRatings);
+                saveRatings();
+                console.log('📊 Sample data added');
+                showToast('Sample data added');
+            },
+            
+            // Export data
+            exportData: () => {
+                const dataStr = JSON.stringify(userRatings, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'reykjavik-beer-ratings.json';
+                link.click();
+                URL.revokeObjectURL(url);
+                console.log('💾 Data exported');
+            },
+            
+            // Show app info
+            info: () => {
+                console.log(`
+🍺 Reykjavík Beer Tracker
+📊 Total Ratings: ${userRatings.length}
+🏢 Venues: ${BEER_VENUES.length}
+🍻 Available Beers: ${AVAILABLE_BEERS.length}
+💾 Storage: ${JSON.stringify(userRatings).length} characters
+                `);
+            }
+        };
+        
+        // Log initialization complete
+        console.log('🚀 Beer Tracker initialized successfully!');
+        console.log('💡 Type debugBeerTracker.info() in console for debug info');
+        
+    </script>
+</body>
+</html>
